@@ -1,8 +1,8 @@
 set(EXECUTABLE ecdh_textbook)
+
 set(SOURCES 
-    main.cpp
-    Printer.cpp
     Math.cpp
+    main.cpp
     KeyManager.cpp
     Pipe.cpp
 )

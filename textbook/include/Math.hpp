@@ -4,5 +4,5 @@
 
 namespace math
 {
-BigInt modExp(BigInt base, BigInt exp, BigInt mod);
+BigInt modExp(BigInt base, BigInt exp, const BigInt& mod);
 } // namespace math

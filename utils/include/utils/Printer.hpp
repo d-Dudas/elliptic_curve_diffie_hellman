@@ -3,7 +3,7 @@
 #include <mutex>
 #include <string>
 
-namespace printer
+namespace utils
 {
 class Printer
 {
@@ -16,4 +16,4 @@ private:
     const std::string name;
     std::mutex mtx;
 };
-} // namespace printer
+} // namespace utils
