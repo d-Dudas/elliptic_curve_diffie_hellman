@@ -15,4 +15,4 @@ This project intends to naivly implement the Diffie Hellman protocol.
 
 ## Run
 
-`./ecdh_textbook`
+`./textbook`

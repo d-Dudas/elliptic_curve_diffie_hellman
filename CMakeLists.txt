@@ -9,4 +9,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wpedantic -O0 -g"
 
 add_subdirectory(utils)
 add_subdirectory(textbook)
-add_subdirectory(ecdh)
+add_subdirectory(industry_standard)

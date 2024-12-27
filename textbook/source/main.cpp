@@ -4,8 +4,8 @@
 #include <unistd.h>
 
 #include "utils/Printer.hpp"
+#include "utils/Pipe.hpp"
 #include "BigInt.hpp"
-#include "Pipe.hpp"
 #include "KeyManager.hpp"
 #include "Math.hpp"
 
