@@ -2,6 +2,7 @@
 #include "utils/Pipe.hpp"
 #include "utils/Check.hpp"
 
+#include <cstdint>
 #include <openssl/bn.h>
 #include <openssl/dh.h>
 #include <openssl/evp.h>
@@ -12,6 +13,12 @@
 #include <openssl/pem.h>
 #include <thread>
 #include <iomanip>
+
+enum class SecurityLevel : std::uint8_t
+{
+    low,
+    high
+};
 
 std::string toHexString(const std::vector<unsigned char>& data)
 {
@@ -104,13 +111,83 @@ catch (const std::exception& e)
     print(e.what());
 }
 
-int main()
+std::string getEvpName(const int pkeyEvp)
 {
-    utils::Printer print("Main");
+    switch (pkeyEvp)
+    {
+        case EVP_PKEY_DH:
+            return "DH";
+        case EVP_PKEY_EC:
+            return "EC";
+        default:
+            return "Unknown";
+    }
+}
+
+int getPrimeLenBasedOnSecurityLevel(const SecurityLevel securityLevel)
+{
+    switch (securityLevel)
+    {
+        case SecurityLevel::low:
+            return 2048;
+        case SecurityLevel::high:
+            return 4096;
+        default:
+            throw std::runtime_error("Unknown security level.");
+    }
+}
+
+int getGeneratorBasedOnSecurityLevel(const SecurityLevel securityLevel)
+{
+    switch (securityLevel)
+    {
+        case SecurityLevel::low:
+            return 2;
+        case SecurityLevel::high:
+            return 5;
+        default:
+            throw std::runtime_error("Unknown security level.");
+    }
+}
+
+int getCurveNidBasedOnSecurityLevel(const SecurityLevel securityLevel)
+{
+    switch (securityLevel)
+    {
+        case SecurityLevel::low:
+            return NID_X9_62_prime256v1;
+        case SecurityLevel::high:
+            return NID_secp384r1;
+        default:
+            throw std::runtime_error("Unknown security level.");
+    }
+}
+
+void configureParams(EVP_PKEY_CTX* pctx, const int pkeyEvp, const SecurityLevel securityLevel)
+{
+    switch (pkeyEvp)
+    {
+        case EVP_PKEY_DH:
+            OPENSSL_CHECK(EVP_PKEY_CTX_set_dh_paramgen_prime_len(pctx, getPrimeLenBasedOnSecurityLevel(securityLevel)));
+            OPENSSL_CHECK(
+                EVP_PKEY_CTX_set_dh_paramgen_generator(pctx, getGeneratorBasedOnSecurityLevel(securityLevel)));
+            break;
+        case EVP_PKEY_EC:
+            OPENSSL_CHECK(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, getCurveNidBasedOnSecurityLevel(securityLevel)));
+            break;
+        default:
+            throw std::runtime_error("Unknown EVP_PKEY type.");
+    }
+}
+
+void createThreadsFor(const int pkeyEvp, const SecurityLevel securityLevel)
+{
+    const std::string pkeyName{getEvpName(pkeyEvp)};
+    utils::Printer print(pkeyName);
     print("Diffie-Hellman Key Exchange Example");
 
-    pipeWrapper::Pipe alicePipe;
-    pipeWrapper::Pipe bobPipe;
+    pipeWrapper::Pipe alicePipe{};
+    pipeWrapper::Pipe bobPipe{};
 
     pipeWrapper::write sendToAlice{
         std::bind(&pipeWrapper::Pipe::write, &alicePipe, std::placeholders::_1, std::placeholders::_2)};
@@ -121,26 +198,32 @@ int main()
     pipeWrapper::read receiveFromBob{
         std::bind(&pipeWrapper::Pipe::read, &bobPipe, std::placeholders::_1, std::placeholders::_2)};
 
-    EVP_PKEY_CTX* pctx{EVP_PKEY_CTX_new_id(EVP_PKEY_DH, nullptr)};
+    EVP_PKEY_CTX* pctx{EVP_PKEY_CTX_new_id(pkeyEvp, nullptr)};
     OPENSSL_CHECK_NULL(pctx);
     OPENSSL_CHECK(EVP_PKEY_paramgen_init(pctx));
 
-    OPENSSL_CHECK(EVP_PKEY_CTX_set_dh_paramgen_prime_len(pctx, 2048));
-    OPENSSL_CHECK(EVP_PKEY_CTX_set_dh_paramgen_generator(pctx, 2));
+    configureParams(pctx, pkeyEvp, securityLevel);
     print("Parameters generated.");
 
     EVP_PKEY* params{nullptr};
     OPENSSL_CHECK(EVP_PKEY_paramgen(pctx, &params));
     print("Parameters set.");
 
-    std::thread aliceThread{userThread, params, sendToBob, receiveFromAlice, "Alice"};
-    std::thread bobThread{userThread, params, sendToAlice, receiveFromBob, "Bob"};
+    std::thread aliceThread{userThread, params, sendToBob, receiveFromAlice, pkeyName + " - Alice"};
+    std::thread bobThread{userThread, params, sendToAlice, receiveFromBob, pkeyName + " - Bob"};
 
     aliceThread.join();
     bobThread.join();
 
     EVP_PKEY_CTX_free(pctx);
     EVP_PKEY_free(params);
+}
 
+int main()
+{
+    createThreadsFor(EVP_PKEY_DH, SecurityLevel::low);
+    createThreadsFor(EVP_PKEY_DH, SecurityLevel::high);
+    createThreadsFor(EVP_PKEY_EC, SecurityLevel::low);
+    createThreadsFor(EVP_PKEY_EC, SecurityLevel::high);
     return 0;
 }
