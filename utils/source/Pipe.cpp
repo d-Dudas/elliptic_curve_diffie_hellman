@@ -1,7 +1,11 @@
 #include "utils/Pipe.hpp"
 
 #include <cstdint>
+#include <openssl/err.h>
+#include <openssl/pem.h>
 #include <unistd.h>
+#include <openssl/bn.h>
+#include <openssl/evp.h>
 
 namespace
 {

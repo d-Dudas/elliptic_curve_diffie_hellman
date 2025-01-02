@@ -11,4 +11,8 @@ target_sources(${MODULE_NAME}
     PRIVATE
         source/Printer.cpp
         source/Pipe.cpp
+        source/benchmark/Benchmarker.cpp
+        source/benchmark/BenchmarkResults.cpp
+        source/benchmark/Timestamp.cpp
+        source/Table.cpp
 )

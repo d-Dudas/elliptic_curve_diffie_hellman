@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <functional>
 
+typedef struct evp_pkey_st EVP_PKEY;
+
 namespace pipeWrapper
 {
 using write = std::function<void(const void*, size_t)>;
